@@ -6,6 +6,9 @@ import { PrismaModule } from './prisma/prisma.module';
 import { TransaksiModule } from './transaksi/transaksi.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
+import { TabunganModule } from './tabungan/tabungan.module';
+import { AdminModule } from './admin/admin.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -28,6 +31,8 @@ import { JwtModule } from '@nestjs/jwt';
     PrismaModule,
     TransaksiModule,
     UsersModule,
+    TabunganModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

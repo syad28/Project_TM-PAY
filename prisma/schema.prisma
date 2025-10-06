@@ -52,7 +52,6 @@ model User {
   tabungan         Tabungan[]
   transaksi        Transaksi[]    @relation("UserTransaksi")
   transaksi_tujuan Transaksi[]    @relation("UserTujuanTransaksi")
-  investasi        Investasi[]
   kritikSaran      KritikSaran[]
   user_sessions    UserSession[]
   user_activities  UserActivity[]
@@ -109,6 +108,8 @@ model Admin {
   password String
   nama     String
   role     String @default("admin")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
   logAktivitas LogAktivitas[]
@@ -173,24 +174,3 @@ model LogAktivitas {
   adminId Int
 }
 
-model Investasi {
-  id      Int      @id @default(autoincrement())
-  jenis   String
-  jumlah  Float
-  tanggal DateTime @default(now())
-
-  // Relations
-  user    User               @relation(fields: [userId], references: [id])
-  userId  Int
-  riwayat RiwayatInvestasi[]
-}
-
-model RiwayatInvestasi {
-  id      Int      @id @default(autoincrement())
-  aksi    String
-  jumlah  Float
-  tanggal DateTime @default(now())
-
-  investasi   Investasi @relation(fields: [investasiId], references: [id])
-  investasiId Int
-}
