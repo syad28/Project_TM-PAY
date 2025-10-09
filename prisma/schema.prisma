@@ -50,11 +50,12 @@ model User {
 
   // Relations
   tabungan         Tabungan[]
-  transaksi        Transaksi[]    @relation("UserTransaksi")
-  transaksi_tujuan Transaksi[]    @relation("UserTujuanTransaksi")
+  transaksi        Transaksi[]         @relation("UserTransaksi")
+  transaksi_tujuan Transaksi[]         @relation("UserTujuanTransaksi")
   kritikSaran      KritikSaran[]
   user_sessions    UserSession[]
   user_activities  UserActivity[]
+  ppob_transactions PPOBTransaction[]
 
   @@index([email])
   @@index([no_hp])
@@ -67,8 +68,8 @@ model User {
 model UserSession {
   id            String   @id @default(cuid())
   user_id       Int
-  token         String   @db.Text
-  refresh_token String?  @db.Text
+  token         String   @db.VarChar(512)
+  refresh_token String?  @db.VarChar(512)
   device_info   String?  @db.Text
   ip_address    String?  @db.VarChar(45)
   user_agent    String?  @db.Text
@@ -78,6 +79,8 @@ model UserSession {
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
+  @@unique([user_id, token])
+  @@unique([user_id, refresh_token])
   @@index([user_id])
   @@index([expires_at])
   @@map("user_sessions")
@@ -172,5 +175,40 @@ model LogAktivitas {
   // Relations
   admin   Admin @relation(fields: [adminId], references: [id])
   adminId Int
+}
+
+// PPOB Transaction
+model PPOBTransaction {
+  id              Int      @id @default(autoincrement())
+  reference_id    String   @unique @db.VarChar(100)
+  product_code    String   @db.VarChar(50)
+  product_name    String   @db.VarChar(255)
+  product_type    String   @db.VarChar(50) // pulsa, paket_data, pln, bpjs, pdam
+  target          String   @db.VarChar(50) // nomor tujuan
+  price           Decimal  @db.Decimal(15, 2)
+  admin_fee       Decimal  @default(0) @db.Decimal(15, 2)
+  total_price     Decimal  @db.Decimal(15, 2)
+  status          String   @default("pending") @db.VarChar(50) // pending, success, failed
+  sn              String?  @db.Text // Serial Number dari provider
+  message         String?  @db.Text
+  email           String?  @db.VarChar(255)
+  
+  // Tripay specific
+  tripay_reference String?  @db.VarChar(100)
+  tripay_status    String?  @db.VarChar(50)
+  
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+  
+  // Relations
+  user            User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user_id         Int
+  
+  @@index([user_id])
+  @@index([reference_id])
+  @@index([status])
+  @@index([product_type])
+  @@index([created_at])
+  @@map("ppob_transactions")
 }
 

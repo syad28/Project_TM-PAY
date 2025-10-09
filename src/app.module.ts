@@ -8,6 +8,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { TabunganModule } from './tabungan/tabungan.module';
 import { AdminModule } from './admin/admin.module';
+import { PpobModule } from './ppob/ppob.module';
 
 @Module({
   imports: [
