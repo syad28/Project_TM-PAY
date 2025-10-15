@@ -19,8 +19,9 @@ import {
     PPOBTransactionDto,
     CheckPPOBDto,
     FilterPPOBProductDto,
-    FilterPPOBTransactionDto
+    FilterPPOBTransactionDto,
 } from './dto';
+import { User } from '../auth/user.decorator';
 
 @Controller('ppob')
 export class PpobController {
@@ -138,8 +139,6 @@ export class PpobController {
             meta: result.meta
         };
     }
-
-    // ========== UTILITY ENDPOINTS ==========
     @Post('check-bill')
     @HttpCode(HttpStatus.OK)
     async checkBill(@Body(ValidationPipe) checkDto: CheckPPOBDto) {
@@ -152,8 +151,8 @@ export class PpobController {
     }
 
     @Get('stats')
-    async getStats() {
-        const stats = await this.ppobService.getStats();
+    async getStats(@User() user: any) {
+        const stats = await this.ppobService.getStats(user.id);
         return {
             statusCode: 200,
             message: 'Statistik PPOB berhasil diambil',
@@ -161,7 +160,6 @@ export class PpobController {
         };
     }
 
-    // ========== TRIPAY SYNC ENDPOINT ==========
     @Post('sync-products')
     @HttpCode(HttpStatus.OK)
     async syncProducts(@Query('margin') margin?: string) {
@@ -177,7 +175,7 @@ export class PpobController {
         };
     }
 
-    // ========== CATEGORY ENDPOINTS ==========
+
     @Get('categories')
     async getCategories() {
         return {

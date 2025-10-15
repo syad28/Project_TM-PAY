@@ -1,7 +1,6 @@
 import { IsString, IsNumber, IsEmail, MinLength, MaxLength, IsEnum, IsOptional, Min, IsArray, ValidateNested } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 
-// ==================== ENUMS ====================
 export enum PPOBProductType {
     PULSA = 'pulsa',
     PAKET_DATA = 'paket_data',
@@ -18,7 +17,6 @@ export enum PPOBStatus {
     REFUNDED = 'refunded'
 }
 
-// ==================== PRODUCT DTOs ====================
 
 export class CreatePPOBProductDto {
     @IsString({ message: 'Kode produk harus berupa string' })
@@ -120,7 +118,7 @@ export class FilterPPOBProductDto {
     limit?: number = 10;
 }
 
-// ==================== TRANSACTION DTOs ====================
+
 
 export class PurchasePPOBDto {
     @IsEnum(PPOBProductType, { message: 'Tipe produk tidak valid' })
@@ -190,7 +188,7 @@ export class FilterPPOBTransactionDto {
     search?: string;
 }
 
-// ==================== BULK PURCHASE ====================
+
 
 export class PurchaseItemDto {
     @IsEnum(PPOBProductType, { message: 'Tipe produk tidak valid' })
@@ -222,7 +220,7 @@ export class BulkPurchasePPOBDto {
     purchases: PurchaseItemDto[];
 }
 
-// ==================== FAVORITE PRODUCT ====================
+
 
 export class AddFavoriteProductDto {
     @IsNumber({}, { message: 'User ID harus berupa angka' })
@@ -240,7 +238,7 @@ export class AddFavoriteProductDto {
     alias?: string;
 }
 
-// ==================== TRANSACTION MANAGEMENT ====================
+
 
 export class CancelTransactionDto {
     @IsString({ message: 'Reference ID harus berupa string' })
@@ -264,7 +262,6 @@ export class RetryTransactionDto {
     userId: number;
 }
 
-// ==================== EXPORT & REPORT ====================
 
 export class ExportTransactionDto {
     @IsNumber({}, { message: 'User ID harus berupa angka' })
@@ -288,7 +285,6 @@ export class ExportTransactionDto {
     format?: 'pdf' | 'excel' | 'csv';
 }
 
-// ==================== SCHEDULED TRANSACTION ====================
 
 export class CreateScheduledTransactionDto {
     @IsNumber({}, { message: 'User ID harus berupa angka' })
@@ -339,7 +335,6 @@ export class UpdateScheduledTransactionDto {
     status?: 'active' | 'paused' | 'cancelled';
 }
 
-// ==================== PROMO & VOUCHER ====================
 
 export class ApplyPromoDto {
     @IsString({ message: 'Kode promo harus berupa string' })
@@ -368,7 +363,6 @@ export class PromoResponseDto {
     message: string;
 }
 
-// ==================== NOTIFICATION ====================
 
 export class UpdateNotificationPreferenceDto {
     @IsNumber({}, { message: 'User ID harus berupa angka' })
@@ -399,8 +393,6 @@ export class UpdateNotificationPreferenceDto {
     @Transform(({ value }) => value === 'true' || value === true)
     lowBalance?: boolean;
 }
-
-// ==================== RECEIPT ====================
 
 export class GenerateReceiptDto {
     @IsString({ message: 'Reference ID harus berupa string' })
@@ -736,4 +728,98 @@ export class ApiResponseDto<T = any> {
     data?: T;
     meta?: any;
     errors?: any;
+}
+
+export class PPOBTransactionDto {
+    @IsString({ message: 'Kode harus berupa string' })
+    @MinLength(3, { message: 'Kode minimal 3 huruf' })
+    productCode: string;
+
+    @IsString({ message: 'Nomor tujuan harus berupa string' })
+    @MinLength(8, { message: 'Nomor tujuan minimal 8 angka' })
+    @MaxLength(20, { message: 'Maximal nomer tujuan 20' })
+    target: string;
+
+    @IsEnum(PPOBProductType, { message: 'Tipe produk tidak valid' })
+    productType: PPOBProductType;
+
+    @IsNumber({}, { message: 'user id harus berupa angka' })
+    @Transform(({ value }) => Number(value))
+    userId: number;
+
+    @IsOptional()
+    @IsNumber({}, { message: 'Harga harus berupa angka' })
+    @Transform(({ value }) => Number(value))
+    amount?: number
+
+    @IsOptional()
+    @IsString({ message: 'Email harus berupa karakter' })
+    @IsEmail({}, { message: 'Format email tidak valid' })
+    email?: string;
+}
+
+export class CheckPPOBDto {
+    @IsString({ message: 'Kode promo harus berupa string' })
+    promo: string;
+
+    @IsEnum(PPOBProductType, { message: 'Tipe produk tidak valid' })
+    productType: PPOBProductType;
+
+    @IsString({ message: 'Nomor tujuan harus berupa angka' })
+    @MinLength(8, { message: 'Minimal nomor 8 angka' })
+    @MaxLength(20, { message: 'Maksimal nomor 20 angka' })
+    target: number;
+
+    @IsOptional()
+    @IsString({ message: 'Refrence ID harus berupa string' })
+    refrenceId?: string;
+
+    @IsString({ message: 'Kode produk harus berupa angka' })
+    @MinLength(3, { message: 'Kode produk minimal 3 angka' })
+    productCode: string;
+}
+export class syncProductsFromTripay {
+    @IsOptional()
+    @IsString({ message: 'Provider harus berupa string' })
+    provider?: string;
+
+    @IsOptional()
+    @IsEnum(PPOBProductType, { message: 'Tipe produk tidak valid' })
+    productType?: PPOBProductType;
+}
+
+export class PPOBProductDto {
+    @IsString()
+    @MinLength(3)
+    code: string;
+
+
+    @IsString()
+    name: string;
+
+    @IsString()
+    type: string;
+
+    @IsNumber()
+    price: number;
+
+    @IsOptional()
+    @IsNumber()
+    adminFee?: number;
+
+    @IsOptional()
+    @IsString()
+    description?: string;
+
+    @IsOptional()
+    @IsString()
+    provider?: string;
+
+    @IsOptional()
+    @IsNumber()
+    stock?: number;
+
+    @IsOptional()
+    @IsString()
+    status?: string;
 }

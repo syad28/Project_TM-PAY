@@ -25,7 +25,7 @@ model User {
   status_akun   String  @default("active")
   role          String  @default("user") @db.VarChar(50)
 
-  //securty nya
+
   email_verified        Boolean   @default(false)
   email_verified_at     DateTime?
   phone_verified        Boolean   @default(false)
@@ -35,12 +35,12 @@ model User {
   failed_login_attempts Int       @default(0)
   locked_until          DateTime?
 
-  //waktu
+  
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  //profil nya
+  
   avatar_url    String?   @db.Text
   date_of_birth DateTime?
   gender        String?   @db.VarChar(10)
@@ -48,7 +48,7 @@ model User {
   ktp_number    String?   @unique @db.VarChar(20)
   ktp_verified  Boolean   @default(false)
 
-  // Relations
+
   tabungan         Tabungan[]
   transaksi        Transaksi[]         @relation("UserTransaksi")
   transaksi_tujuan Transaksi[]         @relation("UserTujuanTransaksi")
@@ -64,7 +64,6 @@ model User {
   @@map("users")
 }
 
-//save session user
 model UserSession {
   id            String   @id @default(cuid())
   user_id       Int
@@ -86,7 +85,6 @@ model UserSession {
   @@map("user_sessions")
 }
 
-//log data user
 model UserActivity {
   id          Int      @id @default(autoincrement())
   user_id     Int
@@ -114,7 +112,7 @@ model Admin {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relations
+
   logAktivitas LogAktivitas[]
 }
 
@@ -127,12 +125,12 @@ model Tabungan {
   status    String    @default("active")
   createdAt DateTime  @default(now())
 
-  // Relations
+
   user      User        @relation(fields: [userId], references: [id])
   userId    Int
   transaksi Transaksi[]
 
-  // Self-relation
+
   tabungan   Tabungan?  @relation("TabunganParent", fields: [tabunganId], references: [id])
   tabunganId Int?
   children   Tabungan[] @relation("TabunganParent")
@@ -146,7 +144,6 @@ model Transaksi {
   promo   String?
   tanggal DateTime       @default(now())
 
-  // Relations sesuai ERD diagram
   user   User @relation("UserTransaksi", fields: [userId], references: [id])
   userId Int
 
@@ -162,7 +159,6 @@ model KritikSaran {
   pesan   String   @db.Text
   tanggal DateTime @default(now())
 
-  // Relations
   user   User @relation(fields: [userId], references: [id])
   userId Int
 }
@@ -177,30 +173,28 @@ model LogAktivitas {
   adminId Int
 }
 
-// PPOB Transaction
 model PPOBTransaction {
   id              Int      @id @default(autoincrement())
   reference_id    String   @unique @db.VarChar(100)
   product_code    String   @db.VarChar(50)
   product_name    String   @db.VarChar(255)
-  product_type    String   @db.VarChar(50) // pulsa, paket_data, pln, bpjs, pdam
-  target          String   @db.VarChar(50) // nomor tujuan
+  product_type    String   @db.VarChar(50) 
+  target          String   @db.VarChar(50) 
   price           Decimal  @db.Decimal(15, 2)
   admin_fee       Decimal  @default(0) @db.Decimal(15, 2)
   total_price     Decimal  @db.Decimal(15, 2)
-  status          String   @default("pending") @db.VarChar(50) // pending, success, failed
-  sn              String?  @db.Text // Serial Number dari provider
+  status          String   @default("pending") @db.VarChar(50) 
+  sn              String?  @db.Text 
   message         String?  @db.Text
   email           String?  @db.VarChar(255)
   
-  // Tripay specific
+
   tripay_reference String?  @db.VarChar(100)
   tripay_status    String?  @db.VarChar(50)
   
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
-  
-  // Relations
+
   user            User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
   user_id         Int
   
@@ -212,3 +206,15 @@ model PPOBTransaction {
   @@map("ppob_transactions")
 }
 
+model PPOBProduct {
+  id        Int     @id @default(autoincrement())
+  code      String  @unique
+  name      String
+  type      String
+  price     Int
+  adminFee  Int
+  description String?
+  provider  String?
+  status    String?
+  stock     Int     @default(0)
+}

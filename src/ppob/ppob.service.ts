@@ -13,6 +13,11 @@ import {
     PurchasePPOBDto,
     InquiryPPOBDto,
     CheckPPOBStatusDto,
+    UpdatePPOBProductDto,
+    PPOBTransactionDto,
+    CreatePPOBProductDto,
+    CheckPPOBDto,
+
 } from './dto';
 import {
     TripayProduct,
@@ -46,10 +51,6 @@ export class PpobService {
         this.tripayBaseUrl = this.configService.get<string>('tripay.baseUrl') || '';
         this.tripayCallbackUrl = this.configService.get<string>('tripay.callbackUrl') || '';
     }
-
-    /**
-     * Generate signature untuk Tripay API
-     */
     private generateSignature(merchantRef: string, amount: number): string {
         const data = this.tripayMerchantCode + merchantRef + amount;
         return crypto
@@ -58,18 +59,13 @@ export class PpobService {
             .digest('hex');
     }
 
-    /**
-     * Generate unique reference ID
-     */
     private generateReferenceId(): string {
         const timestamp = Date.now();
         const random = Math.floor(Math.random() * 10000);
         return `PPOB${timestamp}${random}`;
     }
 
-    /**
-     * Get list produk PPOB dari Tripay
-     */
+
     async getProducts(type?: string): Promise<PPOBProductResponse[]> {
         try {
             const url = `${this.tripayBaseUrl}/merchant/fee-calculator`;
@@ -87,7 +83,7 @@ export class PpobService {
 
             let products = response.data.data || [];
 
-            // Filter by type if provided
+
             if (type) {
                 products = products.filter((p: TripayProduct) =>
                     p.category.toLowerCase() === type.toLowerCase(),
@@ -112,9 +108,6 @@ export class PpobService {
         }
     }
 
-    /**
-     * Inquiry produk PPOB (cek harga dan ketersediaan)
-     */
     async inquiry(dto: InquiryPPOBDto) {
         try {
             const products = await this.getProducts(dto.productType);
@@ -137,12 +130,10 @@ export class PpobService {
         }
     }
 
-    /**
-     * Purchase produk PPOB
-     */
+
     async purchase(dto: PurchasePPOBDto): Promise<PPOBTransactionResponse> {
         try {
-            // 1. Validasi user dan saldo
+
             const user = await this.prisma.user.findUnique({
                 where: { id: dto.userId },
             });
@@ -151,7 +142,7 @@ export class PpobService {
                 throw new NotFoundException('User tidak ditemukan');
             }
 
-            // 2. Get product info dari Tripay
+
             const products = await this.getProducts(dto.productType);
             const product = products.find((p) => p.code === dto.productCode);
 
@@ -166,15 +157,15 @@ export class PpobService {
             const totalPrice = product.totalPrice;
             const adminFee = product.adminFee;
 
-            // 3. Cek saldo user
+
             if (Number(user.saldo) < totalPrice) {
                 throw new BadRequestException('Saldo tidak mencukupi');
             }
 
-            // 4. Generate reference ID
+
             const referenceId = this.generateReferenceId();
 
-            // 5. Create transaction record
+
             const transaction = await this.prisma.pPOBTransaction.create({
                 data: {
                     reference_id: referenceId,
@@ -191,7 +182,7 @@ export class PpobService {
                 },
             });
 
-            // 6. Kurangi saldo user
+
             await this.prisma.user.update({
                 where: { id: dto.userId },
                 data: {
@@ -201,7 +192,7 @@ export class PpobService {
                 },
             });
 
-            // 7. Update status jadi success (simulasi untuk sandbox)
+
             const updatedTransaction = await this.prisma.pPOBTransaction.update({
                 where: { id: transaction.id },
                 data: {
@@ -221,9 +212,7 @@ export class PpobService {
         }
     }
 
-    /**
-     * Check status transaksi
-     */
+
     async checkStatus(dto: CheckPPOBStatusDto): Promise<PPOBTransactionResponse> {
         const transaction = await this.prisma.pPOBTransaction.findUnique({
             where: { reference_id: dto.referenceId },
@@ -236,9 +225,7 @@ export class PpobService {
         return this.mapToResponse(transaction);
     }
 
-    /**
-     * Handle callback dari Tripay
-     */
+
     async handleCallback(callbackData: { merchant_ref: string; reference: string; status: string; note?: string }): Promise<void> {
         try {
             const transaction = await this.prisma.pPOBTransaction.findFirst({
@@ -249,7 +236,7 @@ export class PpobService {
                 throw new NotFoundException('Transaksi tidak ditemukan');
             }
 
-            // Update status transaksi
+
             await this.prisma.pPOBTransaction.update({
                 where: { id: transaction.id },
                 data: {
@@ -260,7 +247,7 @@ export class PpobService {
                 },
             });
 
-            // Jika transaksi gagal, kembalikan saldo
+
             if (
                 callbackData.status === 'FAILED' ||
                 callbackData.status === 'EXPIRED'
@@ -280,9 +267,7 @@ export class PpobService {
         }
     }
 
-    /**
-     * Get transaction history
-     */
+
     async getHistory(
         userId: number,
         page: number = 1,
@@ -313,9 +298,7 @@ export class PpobService {
         };
     }
 
-    /**
-     * Get statistics
-     */
+
     async getStats(userId: number): Promise<PPOBStatsResponse> {
         const transactions = await this.prisma.pPOBTransaction.findMany({
             where: { user_id: userId },
@@ -358,9 +341,7 @@ export class PpobService {
         };
     }
 
-    /**
-     * Map Tripay status to internal status
-     */
+
     private mapTripayStatus(tripayStatus: string): string {
         const statusMap: Record<string, string> = {
             UNPAID: 'pending',
@@ -373,9 +354,7 @@ export class PpobService {
         return statusMap[tripayStatus] || 'pending';
     }
 
-    /**
-     * Map database model to response
-     */
+
     private mapToResponse(transaction: any): PPOBTransactionResponse {
         return {
             id: transaction.id,
@@ -397,4 +376,172 @@ export class PpobService {
             tripayStatus: transaction.tripay_status,
         };
     }
+
+    async createProduct(dto: CreatePPOBProductDto) {
+        return await this.prisma.pPOBProduct.create({
+            data: {
+                code: dto.code,
+                name: dto.name,
+                type: dto.type,
+                price: dto.price,
+                adminFee: dto.adminFee,
+                description: dto.description,
+                provider: dto.provider,
+                stock: dto.stock ?? 0,
+                status: dto.status ?? 'active',
+            },
+        });
+    }
+    async findAllProducts(filter: any) {
+        const page = Number(filter.page) || 1;
+        const limit = Number(filter.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        const where: any = {};
+        if (filter.type) where.type = filter.type;
+        if (filter.provider) where.provider = filter.provider;
+
+        const [data, total] = await this.prisma.$transaction([
+            this.prisma.pPOBProduct.findMany({ where, skip, take: limit }),
+            this.prisma.pPOBProduct.count({ where }),
+        ]);
+
+        return {
+            data,
+            meta: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+            },
+        };
+    }
+
+    async findOneProduct(id: number) {
+        return await this.prisma.pPOBProduct.findUnique({ where: { id } });
+    }
+
+    async findProductByCode(code: string) {
+        return await this.prisma.pPOBProduct.findUnique({ where: { code } });
+    }
+
+    async updateProduct(id: number, dto: UpdatePPOBProductDto) {
+        return await this.prisma.pPOBProduct.update({
+            where: { id },
+            data: dto,
+        });
+    }
+
+    async deleteProduct(id: number) {
+        await this.prisma.pPOBProduct.delete({ where: { id } });
+        return { message: 'Produk PPOB berhasil dihapus' };
+    }
+
+    async createTransaction(dto: PPOBTransactionDto) {
+        return await this.prisma.pPOBTransaction.create({
+            data: {
+                product_code: dto.productCode,
+                product_type: dto.productType,
+                target: dto.target,
+                price: dto.amount ?? 0,
+                total_price: dto.amount ?? 0,
+                user_id: dto.userId,
+                email: dto.email,
+                status: 'pending',
+                reference_id: crypto.randomUUID(),
+                product_name: dto.productCode
+            },
+        });
+    }
+
+    async findAllTransactions(filter: any) {
+        const page = Number(filter.page) || 1;
+        const limit = Number(filter.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        const where: any = {};
+        if (filter.userId) where.userId = filter.userId;
+        if (filter.status) where.status = filter.status;
+
+        const [data, total] = await this.prisma.$transaction([
+            this.prisma.pPOBTransaction.findMany({
+                where,
+                skip,
+                take: limit,
+                orderBy: { created_at: 'desc' },
+            }),
+            this.prisma.pPOBTransaction.count({ where }),
+        ]);
+
+        return {
+            data,
+            meta: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+            },
+        };
+    }
+
+    async findOneTransaction(id: number) {
+        return await this.prisma.pPOBTransaction.findUnique({ where: { id } });
+    }
+    async checkBill(dto: CheckPPOBDto) {
+        const product = await this.prisma.pPOBProduct.findUnique({
+            where: { code: dto.productCode },
+        });
+        if (!product) throw new Error('Produk tidak ditemukan');
+
+        return {
+            productCode: dto.productCode,
+            target: dto.target,
+            amount: product.price + (product.adminFee ?? 0),
+            message: 'Bill check success',
+        };
+    }
+
+    async syncProductsFromTripay(marginPercent: number) {
+        const response = await fetch('https://tripay.co.id/api/merchant/produk', {
+            headers: { Authorization: `Bearer ${process.env.TRIPAY_KEY}` },
+        });
+
+        const data = await response.json();
+
+        let synced = 0;
+        let failed = 0;
+
+        for (const item of data.data) {
+            try {
+                const sellPrice = Math.floor(item.price + (item.price * (marginPercent / 100)));
+
+                await this.prisma.pPOBProduct.upsert({
+                    where: { code: item.code },
+                    update: {
+                        name: item.name,
+                        type: item.type,
+                        price: sellPrice,
+                        adminFee: item.admin_fee ?? 0,
+                        status: item.status,
+                        provider: 'Tripay',
+                    },
+                    create: {
+                        code: item.code,
+                        name: item.name,
+                        type: item.type,
+                        price: sellPrice,
+                        adminFee: item.admin_fee ?? 0,
+                        status: item.status,
+                        provider: 'Tripay',
+                    },
+                });
+                synced++;
+            } catch (error) {
+                failed++;
+                console.error(`Gagal sync produk ${item.code}:`, error);
+            }
+        }
+        return { success: true, message: 'Products synced from Tripay', synced, failed };
+    }
+
 }
